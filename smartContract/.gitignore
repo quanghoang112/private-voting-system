@@ -20,5 +20,5 @@
 /coverage
 
 
-/merkle-tree
-/prover_test
+merkle-tree/
+prover_test/
