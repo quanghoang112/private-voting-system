@@ -18,3 +18,7 @@
 
 # Hardhat coverage reports
 /coverage
+
+
+/merkle-tree
+/prover_test
