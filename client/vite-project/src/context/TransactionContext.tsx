@@ -1,0 +1,189 @@
+import React, {useEffect, useState} from "react";
+import {ethers} from "ethers";
+import {votingContractAddress, votingABI} from "../utils/constants";
+import { IoAlarmOutline } from "react-icons/io5";
+import { AiOutlineMuted } from "react-icons/ai";
+import * as snarkjs from "snarkjs";
+
+
+type TransactionContextType = string|undefined|{}|any;
+
+type TransactionProviderProps ={
+    children: React.ReactNode;
+}
+
+export const TransactionContext = React.createContext("" as TransactionContextType);
+
+// const { ethereum } = (typeof window !== "undefined") ? (window as any).ethereum : undefined;
+
+const { ethereum } = window as any;
+
+const getEthereumContract = async (contractAddress: any, abi: any) => {
+    // const provider = new ethers.providers.Web3Provider(ethereum);
+    const provider = new ethers.BrowserProvider(ethereum);
+    const signer = await provider.getSigner();
+    const transactionContract = 
+    new ethers.Contract(contractAddress, abi, signer);
+
+    console.log("provider, signer, transactionContract");
+
+    console.log({
+    provider,
+    signer,
+    transactionContract
+    });
+
+    return transactionContract;
+
+}
+
+export const TransactionProvider = ({children}: TransactionProviderProps) =>
+{
+    const[currentAccount, setCurrentAccount] = useState(``);
+    const [formData, setFormData] = useState({ addressTo:``, amount: ``, keyword: ``, message:``});
+    const [formVote, setFormVote] = useState({PrivateKey: ``, vote:``});
+    // const [isLoading, setIsLoading] = useState(false);
+    // const [transactionCount, setTransactionCount] = useState(localStorage.getItem(`transactionCount`));
+
+
+    // const handleChange = (e: React.ChangeEvent<HTMLInputElement>, name: string) =>
+    // {
+    //     setFormData((prevState) => ({...prevState, [name]: e.target.value}));
+    // }
+
+
+    const handleChangeVote = (e: React.ChangeEvent<HTMLInputElement>, name: string) =>
+    {
+        setFormVote((prevState) => ({...prevState, [name]: e.target.value}));
+    }
+
+    const checkIfWalletIsConnected = async () =>
+    {
+        try{
+            if(!ethereum) return alert("Please install MetaMask.");
+
+            const accounts = await ethereum.request({method: `eth_accounts`});
+
+            if(accounts.length)
+            {
+                setCurrentAccount(accounts[0]);
+
+                // getAllTransactions();
+            }
+            else
+            {
+                console.log("No accounts found");
+            }
+
+            console.log(accounts);
+        } 
+        catch(error)
+        {
+            console.log(error);
+            throw new Error("No ethereum object.");
+        }
+
+        
+    }
+
+    const connectWallet = async () =>
+    {
+        try{
+            if(!ethereum) return alert("Please install MetaMask.");
+
+            const accounts = await ethereum.request({method: `eth_requestAccounts`});
+        
+            setCurrentAccount(accounts[0]);
+        
+        }
+        catch(error)
+        {
+            console.log(error);
+
+            throw new Error("No ethereum object.");
+        }
+    }
+
+    const sendVotingContract = async () => 
+    {
+        try
+        {
+            if(!ethereum) return alert("Please install MetaMask.");
+
+            console.log("R u ready?");
+        
+            const { PrivateKey,vote } = formVote;
+
+
+            console.log("-> Bắt đầu quá trình tạo Proof ZK...");
+            
+        
+        // 1. TẠO ZK PROOF
+        // Các inputs riêng tư/công khai của bạn (cần đảm bảo chúng là BigInts/Strings hợp lệ)
+            const inputs = {
+                publicKey: currentAccount,
+                nullifier: "0x27b468bf632577a3ac66e4dd21658d865ffbc746fdb420bb0a46b8e1955481a2",
+                votingOptions:4,
+                privateKey:PrivateKey,
+                vote:vote,
+            };
+
+            console.log(inputs);
+
+            const { proof, publicSignals } = await snarkjs.groth16.fullProve(
+                inputs,
+                "./src/zk_artifacts/vote.wasm",
+                "./src/zk_artifacts/vote_final.zkey"
+            );
+
+            // 2. ĐỊNH DẠNG PROOF VÀ PUBLIC SIGNALS
+            console.log("✅ Proof generated successfully.");
+            
+            let pA = proof.pi_a; pA.pop();
+            let pB = proof.pi_b; pB.pop();
+            let pC = proof.pi_c; pC.pop();
+            
+            console.log("Public Signals (Root, NullifierHash, VoteOptions):", publicSignals);
+
+            // 3. GỬI TRANSACTION ON-CHAIN
+            const VotingContract = await getEthereumContract(votingContractAddress,votingABI);
+            
+            console.log("wait VotingContract!");
+            // LƯU Ý: Thay thế các placeholder "" bằng giá trị thực sự từ publicSignals
+            // Cần đảm bảo thứ tự Public Signals khớp với định nghĩa trong Contract ABI
+            // (Trong ABI của bạn có 3 Public Signals: _publicKey, _nullifier, _vote)
+            const tx = await VotingContract.castVote(
+                pA,
+                pB,
+                pC,
+                inputs.publicKey,
+                inputs.nullifier,
+                inputs.vote // _publicKey (Giả định vị trí 0)
+            );
+            
+            console.log("✅ TX sent:", tx.hash);
+            
+            // Chờ transaction hoàn tất (nên thêm bước này để xác nhận)
+            await tx.wait(); 
+            
+            console.log("⭐ Bỏ phiếu thành công và đã được xác nhận trên chuỗi!");
+
+
+        }
+        catch(err)
+        {
+            console.error("❌ Error during Voting Process:", err);
+        }
+
+    }
+
+
+    useEffect(() => {
+        checkIfWalletIsConnected();
+    },[]);
+    return (
+        <TransactionContext.Provider value ={{ connectWallet, currentAccount, formData, setFormData,handleChangeVote, sendVotingContract,formVote,setFormVote }}>
+            {children}
+        </TransactionContext.Provider>
+    )
+}
