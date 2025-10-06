@@ -1,10 +1,10 @@
 import React, {useEffect, useState} from "react";
 import {ethers} from "ethers";
-import {votingContractAddress, votingABI} from "../utils/constants";
-import { IoAlarmOutline } from "react-icons/io5";
-import { AiOutlineMuted } from "react-icons/ai";
+import {votingContractAddress, votingABI,
+    merkleContractAddress, merkleABI,
+} from "../utils/constants";
 import * as snarkjs from "snarkjs";
-
+import {poseidon2} from"poseidon-lite";
 
 type TransactionContextType = string|undefined|{}|any;
 
@@ -175,6 +175,37 @@ export const TransactionProvider = ({children}: TransactionProviderProps) =>
             console.error("❌ Error during Voting Process:", err);
         }
 
+    }
+
+
+    const isMember = async (address: string) =>
+    {
+        try
+        {
+            if(!ethereum) return alert("Please install MetaMask.");
+            const MerkleContract = await getEthereumContract(merkleContractAddress,merkleABI);
+
+            console.log("wait MerkleContract!");
+
+            const proof: string[] =[];
+            const amount = 1;
+
+            const isMember = await MerkleContract.verify(proof,address,amount);
+
+            if(isMember)
+            {
+                console.log("Địa chỉ là thành viên hợp lệ.");
+            }
+            else
+            {
+                alert("Địa chỉ không phải là thành viên hợp lệ.");
+            }
+            return isMember;
+        }
+        catch(err)
+        {
+            console.error("Khong the kiem tra duoc member: ",err);
+        }
     }
 
 
