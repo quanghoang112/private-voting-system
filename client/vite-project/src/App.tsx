@@ -8,15 +8,9 @@ import {Navbar, Welcome, Footer, Services, Transactions,Voting,joinRoom} from '.
 
 const App = () =>
 {
-
-  const [step, setStep] = React.useState<"select" | "join" | "main">("select");
-  const [roomCode, setRoomCode] = React.useState("");
   return (
     
-    <>
-      {step === "select" && Voting(setStep)}
-      {step === "join" && joinRoom(roomCode,setRoomCode,setStep)}
-      {step === "main" && (
+    
         <div className="flex w-full justify-center items-center">
           <div className="min-h-screen text-left">
             <div className="gradient-bg-welcome">
@@ -30,9 +24,7 @@ const App = () =>
             <Footer />
           </div>
         </div>
-      )}
-    </>
-  )
+      )
 }
 
 export default App

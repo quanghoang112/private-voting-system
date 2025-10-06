@@ -10,7 +10,7 @@ import {Loader} from "./";
 const Voting = (setStep: any) =>
 {
     return (
-        <div className="flex flex-col items-center justify-center h-screen text-white">
+        <div className="flex flex-col items-center justify-center text-white">
             <h2 className="text-3xl mb-6 font-bold">Chọn phòng</h2>
             <div className="flex space-x-4">
             <button
@@ -21,7 +21,7 @@ const Voting = (setStep: any) =>
             </button>
             <button
                 className="bg-green-600 px-6 py-2 rounded hover:bg-green-700"
-                onClick={() => setStep("main")}
+                onClick={() => setStep("create")}
             >
                 CREATE ROOM
             </button>

@@ -4,7 +4,7 @@ import { SiEthereum } from "react-icons/si";
 import React, {use, useContext} from "react";
 
 import { TransactionContext } from "../context/TransactionContext";
-import {Loader} from "./";
+import {Loader,Voting,joinRoom} from "./";
 import { shortenAddress } from "../utils/shortenAddress";
 
 
@@ -38,7 +38,8 @@ const Welcome = () => {
         handleChangeVote,sendVotingContract,
         formVote, setFormVote } =useContext(TransactionContext);
 
-    // e : React.ChangeEvent<HTMLInputElement>
+    const [step, setStep] = React.useState<"select" | "join" | "create" | "main">("select");
+    const [roomCode, setRoomCode] = React.useState("");
 
     const handleVote = async (e: any) =>
     {
@@ -135,61 +136,74 @@ const Welcome = () => {
                             </div>
                         </div>
                     </div>
-
-                    <div className="p-5 sm:w-96 w-full flex flex-col justify-start items-center blue-glassmorphism">
-                        <Input placeholder="Private key" name="PrivateKey" type="text" handleChange={handleChangeVote} />
                     
-                        {/* VoteOptions */}
-                        <div className="w-full my-3 p-3 rounded-mdw-full my-3 p-3 rounded-md bg-[#191932] border border-[#3d4f7c]">
-                            <label className="text-white text-sm mb-2 block font-semibold">Chọn Lựa Chọn Bỏ Phiếu:</label>
+                    
+                        <div className="p-5 sm:w-96 w-full flex flex-col justify-start items-center blue-glassmorphism">
+                            {step === "select" && Voting(setStep)}
+                            {step === "join" && joinRoom(roomCode,setRoomCode,setStep)}
+                            {step === "create" && (
+                                <Input placeholder="Public key" name="PublicKey" type="text" handleChange={handleChangeVote} />
+                            )}
+                            {step === "main" && (
+                                <>
+                                    <Input placeholder="Private key" name="PrivateKey" type="text" handleChange={handleChangeVote} />
                             
-                            <div className="flex flex-col space-y-2 text-white">
-                                <div className="flex items-center">
-                                    <input className="w-4 h-4 text-pink-500 bg-gray-700 border-gray-600 focus:ring-pink-500"
-                                    type="radio" id="vote1" name="vote" value="1" onChange={(e)=>handleChangeVote(e,"vote")}/>
-                                    <label htmlFor="vote1" className="ml-2 text-sm cursor-pointer">Lựa chọn 1</label>
+                                    {/* VoteOptions */}
+                                    <div className="w-full my-3 p-3 rounded-mdw-full my-3 p-3 rounded-md bg-[#191932] border border-[#3d4f7c]">
+                                        <label className="text-white text-sm mb-2 block font-semibold">Chọn Lựa Chọn Bỏ Phiếu:</label>
+                                        
+                                        <div className="flex flex-col space-y-2 text-white">
+                                            <div className="flex items-center">
+                                                <input className="w-4 h-4 text-pink-500 bg-gray-700 border-gray-600 focus:ring-pink-500"
+                                                type="radio" id="vote1" name="vote" value="1" onChange={(e)=>handleChangeVote(e,"vote")}/>
+                                                <label htmlFor="vote1" className="ml-2 text-sm cursor-pointer">Lựa chọn 1</label>
 
-                                </div>
-                                <div className="flex items-center">
-                                    <input className="w-4 h-4 text-pink-500 bg-gray-700 border-gray-600 focus:ring-pink-500"
-                                    type="radio" id="vote2" name="vote" value="2" onChange={(e)=>handleChangeVote(e,"vote")}/>
-                                    <label htmlFor="vote2" className="ml-2 text-sm cursor-pointer">Lựa chọn 2</label>
+                                            </div>
+                                            <div className="flex items-center">
+                                                <input className="w-4 h-4 text-pink-500 bg-gray-700 border-gray-600 focus:ring-pink-500"
+                                                type="radio" id="vote2" name="vote" value="2" onChange={(e)=>handleChangeVote(e,"vote")}/>
+                                                <label htmlFor="vote2" className="ml-2 text-sm cursor-pointer">Lựa chọn 2</label>
 
-                                </div>
-                                <div className="flex items-center">
-                                    <input className="w-4 h-4 text-pink-500 bg-gray-700 border-gray-600 focus:ring-pink-500"
-                                    type="radio" id="vote3" name="vote" value="3" onChange={(e)=>handleChangeVote(e,"vote")}/>
-                                    <label htmlFor="vote3" className="ml-2 text-sm cursor-pointer">Lựa chọn 3</label>
+                                            </div>
+                                            <div className="flex items-center">
+                                                <input className="w-4 h-4 text-pink-500 bg-gray-700 border-gray-600 focus:ring-pink-500"
+                                                type="radio" id="vote3" name="vote" value="3" onChange={(e)=>handleChangeVote(e,"vote")}/>
+                                                <label htmlFor="vote3" className="ml-2 text-sm cursor-pointer">Lựa chọn 3</label>
 
-                                </div>
-                                <div className="flex items-center">
-                                    <input className="w-4 h-4 text-pink-500 bg-gray-700 border-gray-600 focus:ring-pink-500"
-                                    type="radio" id="vote4" name="vote" value="4" onChange={(e)=>handleChangeVote(e,"vote")}/>
-                                    <label htmlFor="vote4" className="ml-2 text-sm cursor-pointer">Lựa chọn 4</label>
+                                            </div>
+                                            <div className="flex items-center">
+                                                <input className="w-4 h-4 text-pink-500 bg-gray-700 border-gray-600 focus:ring-pink-500"
+                                                type="radio" id="vote4" name="vote" value="4" onChange={(e)=>handleChangeVote(e,"vote")}/>
+                                                <label htmlFor="vote4" className="ml-2 text-sm cursor-pointer">Lựa chọn 4</label>
 
-                                </div>
-                            </div>
-                        </div>
-                    
-                        <div className="h-[1px] w-full bg-gray-400 my-2">
+                                            </div>
+                                        </div>
+                                    </div>
+                                
+                                    <div className="h-[1px] w-full bg-gray-400 my-2">
 
-                        </div>
-                        {false
-                            ? <Loader />
-                            : (
-                                <button
-                                type="button"
-                                onClick={handleVote}
-                                className="text-white w-full mt-2 border-[1px] p-2 border-[#3d4f7c] hover:bg-[#3d4f7c] rounded-full cursor-pointer"
-                                >
-                                Send now
-                                </button>
+                                    </div>
+                                    {false
+                                        ? <Loader />
+                                        : (
+                                            <button
+                                            type="button"
+                                            onClick={handleVote}
+                                            className="text-white w-full mt-2 border-[1px] p-2 border-[#3d4f7c] hover:bg-[#3d4f7c] rounded-full cursor-pointer"
+                                            >
+                                            Send now
+                                            </button>
+                                        )}
+                                </>
                             )}
 
-                        
+                            
+
+                            
 
 
-                    </div>
+                        </div>
+                    
                 </div>
 
             </div>

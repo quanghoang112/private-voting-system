@@ -3,7 +3,7 @@ import React, {use, useContext} from "react";
 
 
 const joinRoom = (roomCode: string|number,setRoomCode: any,setStep: any) => (
-  <div className="flex flex-col items-center justify-center h-screen text-white">
+  <div className="flex flex-col items-center justify-center text-white">
     <h2 className="text-2xl mb-4">Nhập mã phòng</h2>
     <input
             type="text"

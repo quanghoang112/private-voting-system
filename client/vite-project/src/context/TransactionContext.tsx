@@ -12,6 +12,15 @@ type TransactionProviderProps ={
     children: React.ReactNode;
 }
 
+interface Room {
+  id: string;           // room id
+  code: string;         // mã phòng (có thể hash)
+  admin: string;        // wallet address của người tạo
+  members: string[];    // danh sách accounts đã join
+  voteCount: number[]; // số phiếu cho từng lựa chọn
+//   status?: "open" | "closed";
+}
+
 export const TransactionContext = React.createContext("" as TransactionContextType);
 
 // const { ethereum } = (typeof window !== "undefined") ? (window as any).ethereum : undefined;
@@ -42,14 +51,8 @@ export const TransactionProvider = ({children}: TransactionProviderProps) =>
     const[currentAccount, setCurrentAccount] = useState(``);
     const [formData, setFormData] = useState({ addressTo:``, amount: ``, keyword: ``, message:``});
     const [formVote, setFormVote] = useState({PrivateKey: ``, vote:``});
-    // const [isLoading, setIsLoading] = useState(false);
-    // const [transactionCount, setTransactionCount] = useState(localStorage.getItem(`transactionCount`));
-
-
-    // const handleChange = (e: React.ChangeEvent<HTMLInputElement>, name: string) =>
-    // {
-    //     setFormData((prevState) => ({...prevState, [name]: e.target.value}));
-    // }
+    const [rooms, setRooms] = useState<Record<string, Room>>({});
+    const [currentRoomId, setCurrentRoomId] = useState<string | null>(null);
 
 
     const handleChangeVote = (e: React.ChangeEvent<HTMLInputElement>, name: string) =>
@@ -208,6 +211,17 @@ export const TransactionProvider = ({children}: TransactionProviderProps) =>
         }
     }
 
+    const createRoom = async (code: string) =>
+    {
+        try
+        {
+
+        }
+        catch(err)
+        {
+            console.error("Khong the tao duoc phong: ",err);
+        }
+    }
 
     useEffect(() => {
         checkIfWalletIsConnected();
