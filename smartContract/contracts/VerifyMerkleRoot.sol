@@ -16,13 +16,11 @@ contract VerifyMerkleRoot {
         bytes32[] memory proof,
         address addr,
         uint256 amount
-    ) public {
+    ) public view returns (bool) {
         // (2)
         bytes32 leaf = keccak256(bytes.concat(keccak256(abi.encode(addr, amount))));
-        // (3)
-        require(MerkleProof.verify(proof, root, leaf), "Invalid proof");
-        // (4)
-        // ...
+
+        return MerkleProof.verify(proof, root, leaf);
     }
 
     function getRoot() public view returns (bytes32) 
