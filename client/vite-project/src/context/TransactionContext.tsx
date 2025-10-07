@@ -2,6 +2,8 @@ import React, {useEffect, useState} from "react";
 import {ethers} from "ethers";
 import {votingContractAddress, votingABI,
     merkleContractAddress, merkleABI,
+    roomsContractAddress, roomsABI,
+
 } from "../utils/constants";
 import * as snarkjs from "snarkjs";
 import {poseidon2} from"poseidon-lite";
@@ -12,14 +14,16 @@ type TransactionProviderProps ={
     children: React.ReactNode;
 }
 
-interface Room {
-  id: string;           // room id
-  code: string;         // mã phòng (có thể hash)
-  admin: string;        // wallet address của người tạo
-  members: string[];    // danh sách accounts đã join
-  voteCount: number[]; // số phiếu cho từng lựa chọn
+export interface Room {
+    admin: string;        // wallet address của người tạo
+    code: string;         // mã phòng (có thể hash)
+    members?: string[];    // danh sách accounts đã join
+    voteOptions: number; // số phiếu cho từng lựa chọn
+    endAt?: number; // Thời gian kết thúc (ms)
 //   status?: "open" | "closed";
 }
+
+const Rooms: Record<string, Room> = {};
 
 export const TransactionContext = React.createContext("" as TransactionContextType);
 
@@ -59,6 +63,26 @@ export const TransactionProvider = ({children}: TransactionProviderProps) =>
     {
         setFormVote((prevState) => ({...prevState, [name]: e.target.value}));
     }
+
+    const handleChangeRoom = (e: React.ChangeEvent<HTMLInputElement>, name: string) => {
+    // Lấy giá trị nhập vào từ input
+        const newValue = e.target.value;
+
+        setRooms((prevState) => {
+            // 1. Lấy đối tượng Room hiện tại (hoặc đối tượng rỗng nếu chưa tồn tại)
+            const currentRoom = prevState[currentAccount] || {}; 
+
+            // 2. Trả về state mới với đối tượng Room đã được cập nhật
+            return {
+                ...prevState, // Giữ lại tất cả các phòng khác
+                [currentAccount]: {
+                    ...currentRoom, // Giữ lại các thuộc tính khác của Room hiện tại
+                    [name]: newValue, // Cập nhật thuộc tính có tên là 'name' (ví dụ: 'code' hoặc 'name')
+                    ["admin"]: currentAccount,
+                }
+            };
+        });
+    };
 
     const checkIfWalletIsConnected = async () =>
     {
@@ -211,11 +235,33 @@ export const TransactionProvider = ({children}: TransactionProviderProps) =>
         }
     }
 
-    const createRoom = async (code: string) =>
+    const createRoom = async (_code: string, _admin: string, _voteOptions: number) =>
     {
         try
         {
+            if(!ethereum) return alert("Please install MetaMask.");
 
+            if(!currentAccount) return alert("Please connect your wallet.");
+
+            console.log("R u ready to create room?");
+
+            const roomsContract = await getEthereumContract(roomsContractAddress,roomsABI);
+
+            console.log("wait roomsContract!");
+
+            const tx = await roomsContract.createRoom(_code,_voteOptions);
+
+            console.log("✅ TX sent:", tx.hash);
+            
+            // Chờ transaction hoàn tất (nên thêm bước này để xác nhận)
+            if (await tx.wait())
+            {
+                console.log("Tạo phòng thành công!");
+                return true;
+            }
+            else
+                return false;
+            
         }
         catch(err)
         {
@@ -227,7 +273,12 @@ export const TransactionProvider = ({children}: TransactionProviderProps) =>
         checkIfWalletIsConnected();
     },[]);
     return (
-        <TransactionContext.Provider value ={{ connectWallet, currentAccount, formData, setFormData,handleChangeVote, sendVotingContract,formVote,setFormVote }}>
+        <TransactionContext.Provider value ={{ connectWallet, currentAccount, 
+            formData, setFormData,
+            handleChangeVote, sendVotingContract,
+            formVote,setFormVote,
+            rooms, setRooms, handleChangeRoom,createRoom,
+            }}>
             {children}
         </TransactionContext.Provider>
     )

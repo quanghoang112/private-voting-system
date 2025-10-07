@@ -9,9 +9,10 @@ import { shortenAddress } from "../utils/shortenAddress";
 
 
 const commonStyle ='min-h-[70px] sm:px-0 px-2 sm:min-w-[120px] flex justify-center items-center border-[0.5px] border-gray-400 text-sm font-light text-white';
+const LABEL_WIDTH = "w-32";
 
 interface InputProps {
-    placeholder: string;
+    placeholder?: string;
     name: string;
     type: string;
     value?: string;
@@ -36,7 +37,9 @@ const Welcome = () => {
     const { connectWallet,currentAccount,
         formData,setformData,
         handleChangeVote,sendVotingContract,
-        formVote, setFormVote } =useContext(TransactionContext);
+        formVote, setFormVote,
+        rooms,setRooms,handleChangeRoom, createRoom,
+    } =useContext(TransactionContext);
 
     const [step, setStep] = React.useState<"select" | "join" | "create" | "main">("select");
     const [roomCode, setRoomCode] = React.useState("");
@@ -52,6 +55,39 @@ const Welcome = () => {
         if (!PrivateKey || !vote ) return;
 
         sendVotingContract();
+
+    }
+
+    const handleCreateRoom = async (e: any) =>
+    {
+        if(!currentAccount) 
+        {
+            console.log("No account connected");
+            return;
+        }
+
+        console.log("current account: ",currentAccount);
+        // 
+        const data = rooms[currentAccount];
+
+        console.log("data: ",data);
+
+        e.preventDefault();
+
+        console.log(`code room: ${data.code}, admin: ${data.admin}, voteOptions: ${data.voteOptions}`);
+
+        if (!data ) return;
+
+
+        const isRoomcreated=await createRoom(data.code, data.admin, data.voteOptions);
+        if(isRoomcreated)
+            {
+                setStep("main");
+            }
+        else
+        {
+            alert("Tạo phòng không thành công.");
+        }
 
     }
 
@@ -140,9 +176,48 @@ const Welcome = () => {
                     
                         <div className="p-5 sm:w-96 w-full flex flex-col justify-start items-center blue-glassmorphism">
                             {step === "select" && Voting(setStep)}
-                            {step === "join" && joinRoom(roomCode,setRoomCode,setStep)}
+                            {step === "join" && joinRoom(rooms,setStep)}
                             {step === "create" && (
-                                <Input placeholder="Public key" name="PublicKey" type="text" handleChange={handleChangeVote} />
+                                <>
+                                    <div className="flex items-center w-full rounded-sm text-white text-sm">
+                                        <label className={`text-white whitespace-nowrap ${LABEL_WIDTH}`}>
+                                            Admin: 
+                                        </label>
+                                        <input className="my-2 w-full rounded-sm p-2 outline-none bg-transparent text-white border-none text-sm white-glassmorphism"
+                                         value={currentAccount} name="admin" type="text" readOnly/>
+                                    </div>
+
+                                    <div className="flex items-center w-full rounded-sm text-white text-sm">
+                                        <label className={`text-white whitespace-nowrap ${LABEL_WIDTH}`}>
+                                            Code room: 
+                                        </label>
+                                        <input className="my-2 w-full rounded-sm p-2 outline-none bg-transparent text-white border-none text-sm white-glassmorphism"
+                                         name="code" type="text" onChange={(e) =>handleChangeRoom(e,"code")}/>
+                                    </div>
+
+                                    <div className="flex items-center w-full rounded-sm text-white text-sm">
+                                        <label className={`text-white whitespace-nowrap ${LABEL_WIDTH}`}>
+                                            Vote options: 
+                                        </label>
+                                        <input className="my-2 w-full rounded-sm p-2 outline-none bg-transparent text-white border-none text-sm white-glassmorphism"
+                                         name="voteOptions" type="text" onChange={(e) => handleChangeRoom(e,"voteOptions")}/>
+                                    </div>
+
+                                    <div className="h-[1px] w-full bg-gray-400 my-2"/>
+
+                                    {false
+                                        ? <Loader />
+                                        : (
+                                            <button
+                                            type="button"
+                                            onClick={handleCreateRoom}
+                                            className="text-white w-full mt-2 border-[1px] p-2 border-[#3d4f7c] hover:bg-[#3d4f7c] rounded-full cursor-pointer"
+                                            >
+                                            create room
+                                            </button>
+                                        )}
+
+                                </>
                             )}
                             {step === "main" && (
                                 <>
@@ -180,9 +255,8 @@ const Welcome = () => {
                                         </div>
                                     </div>
                                 
-                                    <div className="h-[1px] w-full bg-gray-400 my-2">
+                                    <div className="h-[1px] w-full bg-gray-400 my-2"/>
 
-                                    </div>
                                     {false
                                         ? <Loader />
                                         : (
