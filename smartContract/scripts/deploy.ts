@@ -44,6 +44,12 @@ const main = async () =>
 
   // console.log("is true Root: ", await ZKVotingContract.isTrueRoot(MERKLE_ROOT_TO_DEPLOY));
 
+  // deploy room management contract 
+  const roomManagement = await ethers.getContractFactory("roomManagement");
+  const roomManagementContract = await roomManagement.deploy();
+
+  console.log("roomMangement Contract: ", await roomManagementContract.getAddress());
+
 
   //test
 //   const proofString : string[] =[
