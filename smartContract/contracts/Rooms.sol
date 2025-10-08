@@ -17,30 +17,56 @@ contract roomManagement
     }
 
     mapping(address => Room) public rooms;
+    address[] public allAdmins; 
+
     event RoomCreated(
         address indexed admin,
         uint256 code,
         uint16 voteOptions
     );
+    event AllAdminsReturned(
+        uint256 indexed length
+    );
+
 
     function createRoom(uint256 _code, uint16 _voteOptions) public
     {
-        address id = msg.sender;
-        require(!rooms[id].exists, "Room already exists!");
-        rooms[id] = Room
+        address _id = msg.sender;
+        require(!rooms[_id].exists, "Room already exists!");
+        
+        //test
+        // require(1 == 0,"Test revert!");
+        //
+
+        allAdmins.push(_id); 
+
+        rooms[_id] = Room
         ({
-            admin: id,
+            admin: _id,
             code: _code,
             voteOptions: _voteOptions,
             exists: true
         });
 
-        emit RoomCreated(id,_code,_voteOptions);
+
+
+        emit RoomCreated(_id,_code,_voteOptions);
 
     }
 
-    function getRoom(address _admin) public view returns(Room memory)
+    function isCorrectRoom(address _admin, uint256 _code) public view returns(bool)
     {
+        require(rooms[_admin].exists, "Room does not exist!");
+        // require(!rooms[_admin].exists, "Room exist!");
+        return rooms[_admin].code==_code;
+    }
+
+    function getAllAdmins(uint256 _length) public{
+        // require(1 == 0,"Test revert!");
+        emit AllAdminsReturned(_length);
+    }
+
+    function getRoom(address _admin) public view returns(Room memory) {
         require(rooms[_admin].exists, "Room does not exist!");
         return rooms[_admin];
     }

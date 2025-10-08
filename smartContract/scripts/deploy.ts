@@ -4,12 +4,12 @@ import {readJsonFile} from "../utils/onFile.js";
 
 
 
+
 const main = async () =>
 {
 
   const { ethers } = await network.connect({
-    network: "hardhatOp",
-    chainType: "op",
+    network: "localhost",
   });
   // const { ethers } = await network.connect(
   //   {
@@ -18,7 +18,9 @@ const main = async () =>
   //   }
   // )
 
-  console.log("Deploying contract to Sepolia testnet");
+  console.log("Deploying contract to network:", (await ethers.provider.getNetwork()).name);
+
+  console.log("Deploying contract to Hardhat testnet");
 
   const [deployer] = await ethers.getSigners();
 
@@ -49,6 +51,7 @@ const main = async () =>
   const roomManagementContract = await roomManagement.deploy();
 
   console.log("roomMangement Contract: ", await roomManagementContract.getAddress());
+  // console.log("allAdmins: ", await roomManagementContract.getAllAdmins());
 
 
   //test
