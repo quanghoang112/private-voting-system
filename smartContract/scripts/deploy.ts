@@ -40,7 +40,7 @@ const main = async () =>
 
   const ZKVoting = await ethers.getContractFactory("ZKVoting");
   // const ZKVotingContract = await ZKVoting.deploy(VoteOptions,MERKLE_ROOT_TO_DEPLOY);
-  const ZKVotingContract = await ZKVoting.deploy(VoteOptions,"0x5FbDB2315678afecb367f032d93F642f64180aa3");
+  const ZKVotingContract = await ZKVoting.deploy(VoteOptions);
 
   console.log("ZKVoting Contract: ",await ZKVotingContract.getAddress());
 
@@ -52,6 +52,12 @@ const main = async () =>
 
   console.log("roomMangement Contract: ", await roomManagementContract.getAddress());
   // console.log("allAdmins: ", await roomManagementContract.getAllAdmins());
+
+  //deplot CircomVerifier Contract
+  const Groth16Verifier = await ethers.getContractFactory("Groth16Verifier");
+  const Groth16VerifierContract = await Groth16Verifier.deploy();
+
+  console.log("Groth16Verifier Contract: ", await Groth16VerifierContract.getAddress());
 
 
   //test
