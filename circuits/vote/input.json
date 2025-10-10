@@ -1,0 +1,7 @@
+{
+    "publicKey": "0x9576A6135DA7af70bBe2b10c498208Cd4b838DD7",
+    "nullifier": "0x27b468bf632577a3ac66e4dd21658d865ffbc746fdb420bb0a46b8e1955481a2",
+    "votingOptions":4,
+    "privateKey":"1234",
+    "vote":"1"
+}

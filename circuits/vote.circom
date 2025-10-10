@@ -26,6 +26,7 @@ template VoteCircuit() {
     //private inputs
     signal input privateKey;
     signal input vote;
+
     // signal input merklePathIndices[depth];
     // signal input merklePath[depth];
 
@@ -70,16 +71,34 @@ template VoteCircuit() {
     // log(VoteCommitment);
 
     // Verify vote is valid
+    signal output isValidVote;
     component rangeCheck = LessThan(8);
     rangeCheck.in[0] <== vote;
     rangeCheck.in[1] <== votingOptions;
-    rangeCheck.out === 1;
+    
+    component checkOptions = IsEqual();
+    checkOptions.in[0] <==rangeCheck.out;
+    checkOptions.in[1] <== 1;
+    isValidVote <== checkOptions.out;
+
+    log(isValidVote);
+
     
     // Create nullifier to prevent double voting
+    signal output isUsed;
     component nullifierHasher = Poseidon(2);
     nullifierHasher.inputs[0] <== privateKey;
     nullifierHasher.inputs[1] <== vote;
-    nullifierHasher.out === nullifier;
+
+    log(nullifierHasher.out);
+
+    component checkNullifier = IsEqual();
+    checkNullifier.in[0] <== nullifierHasher.out;
+    checkNullifier.in[1] <== nullifier;
+    isUsed <== checkNullifier.out;
+
+    log(isUsed);
+
 }
 
 
