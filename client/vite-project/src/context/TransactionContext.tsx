@@ -1,6 +1,6 @@
 import React, {useEffect, useState} from "react";
 import {ethers} from "ethers";
-import {votingContractAddress, votingABI,
+import {votingContractAddress, votingABI, votingBytecode,
     merkleContractAddress, merkleABI,
     roomsContractAddress, roomsABI,
 
@@ -25,6 +25,8 @@ export interface Room {
 
 const Rooms: Record<string, Room> = {};
 
+const hash = (a: any, b: any) => poseidon2([a, b]);
+
 export const TransactionContext = React.createContext("" as TransactionContextType);
 
 // const { ethereum } = (typeof window !== "undefined") ? (window as any).ethereum : undefined;
@@ -32,22 +34,38 @@ export const TransactionContext = React.createContext("" as TransactionContextTy
 const { ethereum } = window as any;
 
 const getEthereumContract = async (contractAddress: any, abi: any) => {
-    // const provider = new ethers.providers.Web3Provider(ethereum);
-    const provider = new ethers.BrowserProvider(ethereum);
+    const provider = new ethers.JsonRpcProvider('http://localhost:8545');
+    // const provider = new ethers.BrowserProvider(ethereum);
     const signer = await provider.getSigner();
     const transactionContract = 
     new ethers.Contract(contractAddress, abi, signer);
 
-    console.log("provider, signer, transactionContract");
-
-    console.log({
-    provider,
-    signer,
-    transactionContract
-    });
-
     return transactionContract;
 
+}
+
+const deployZKVotingContract = async (votingOptionsCount: number, rootContractAddress: string)  =>
+{
+
+    const provider = new ethers.JsonRpcProvider('http://localhost:8545');
+
+    // Lấy Signer (người dùng đã kết nối MetaMask)
+    const signer = await provider.getSigner();
+
+    // 1. Tạo Contract Factory
+    const ZKVotingFactory = new ethers.ContractFactory(votingABI, votingBytecode, signer);
+
+    // 2. GỌI TRIỂN KHAI (deploy) VÀ TRUYỀN ĐỐI SỐ CHO CONSTRUCTOR
+    const contract = await ZKVotingFactory.deploy(
+        votingOptionsCount    // Đối số 1: _votingOptionsCount
+        // Ethers sẽ tự động mã hóa các đối số này và gọi constructor
+    );
+
+    // Chờ giao dịch được xác nhận
+    await contract.waitForDeployment(); 
+
+    console.log("Contract deployed at address:", await contract.getAddress());
+    return contract;
 }
 
 export const TransactionProvider = ({children}: TransactionProviderProps) =>
@@ -56,7 +74,6 @@ export const TransactionProvider = ({children}: TransactionProviderProps) =>
     const [formData, setFormData] = useState({ addressTo:``, amount: ``, keyword: ``, message:``});
     const [formVote, setFormVote] = useState({PrivateKey: ``, vote:``});
     const [rooms, setRooms] = useState<Record<string, Room>>({});
-    const [currentRoomId, setCurrentRoomId] = useState<string | null>(null);
 
 
     const handleChangeVote = (e: React.ChangeEvent<HTMLInputElement>, name: string) =>
@@ -143,13 +160,15 @@ export const TransactionProvider = ({children}: TransactionProviderProps) =>
 
 
             console.log("-> Bắt đầu quá trình tạo Proof ZK...");
+            const nullifierHash = hash(PrivateKey,vote);
+            console.log("nullifier: ", nullifierHash);
             
         
         // 1. TẠO ZK PROOF
         // Các inputs riêng tư/công khai của bạn (cần đảm bảo chúng là BigInts/Strings hợp lệ)
             const inputs = {
                 publicKey: currentAccount,
-                nullifier: "0x27b468bf632577a3ac66e4dd21658d865ffbc746fdb420bb0a46b8e1955481a2",
+                nullifier: nullifierHash,
                 votingOptions:4,
                 privateKey:PrivateKey,
                 vote:vote,
@@ -160,7 +179,7 @@ export const TransactionProvider = ({children}: TransactionProviderProps) =>
             const { proof, publicSignals } = await snarkjs.groth16.fullProve(
                 inputs,
                 "./src/zk_artifacts/vote.wasm",
-                "./src/zk_artifacts/vote_final.zkey"
+                "./src/zk_artifacts/vote_0001.zkey"
             );
 
             // 2. ĐỊNH DẠNG PROOF VÀ PUBLIC SIGNALS
@@ -169,6 +188,15 @@ export const TransactionProvider = ({children}: TransactionProviderProps) =>
             let pA = proof.pi_a; pA.pop();
             let pB = proof.pi_b; pB.pop();
             let pC = proof.pi_c; pC.pop();
+
+           pA = pA.map(x => ethers.toBeHex(x,32));
+            pB = [
+                [ethers.toBeHex(pB[0][1],32),ethers.toBeHex(pB[0][0],32)],
+                [ethers.toBeHex(pB[1][1],32),ethers.toBeHex(pB[1][0],32)]
+            ];
+            pC = pC.map(x => ethers.toBeHex(x,32));
+            pC = pC.map(x => ethers.toBeHex(x,32));
+            
             
             console.log("Public Signals (Root, NullifierHash, VoteOptions):", publicSignals);
 
@@ -183,9 +211,8 @@ export const TransactionProvider = ({children}: TransactionProviderProps) =>
                 pA,
                 pB,
                 pC,
-                inputs.publicKey,
-                inputs.nullifier,
-                inputs.vote // _publicKey (Giả định vị trí 0)
+                publicSignals.map(x => ethers.toBeHex(x,32)),
+                inputs.vote
             );
             
             console.log("✅ TX sent:", tx.hash);
@@ -249,9 +276,42 @@ export const TransactionProvider = ({children}: TransactionProviderProps) =>
 
             console.log("wait roomsContract!");
 
-            const tx = await roomsContract.createRoom(_code,_voteOptions);
+            const tx = await roomsContract.createRoom(_admin,_code,_voteOptions);
 
             console.log("✅ TX sent:", tx.hash);
+
+            //test
+            const receipt = await tx.wait();
+
+            console.log(await receipt.logs);
+            for (const log of receipt.logs) {
+                // roomsContract.interface chứa thông tin về tất cả các Events trong ABI của bạn
+                // Phương thức parseLog sẽ giải mã log thô thành đối tượng dễ đọc (ParsedLog)
+                const parsedLog = roomsContract.interface.parseLog(log); 
+
+                // console.log("Parsed Log:", parsedLog); // Dòng này giúp bạn debug chi tiết
+
+                // **********************************************
+                // BẮT ĐẦU TRUY CẬP THÔNG TIN TỪ parsedLog
+                // **********************************************
+                
+                if (parsedLog && parsedLog.name === 'RoomCreated') {
+                    // 1. Lấy tên Event (ví dụ: 'AllAdminsReturned')
+                    console.log("Tên Event:", parsedLog.name); 
+
+                    // 2. Lấy các đối số (Arguments)
+                    // Đây là một đối tượng Args/Result (giống như mảng).
+                    // Đối số đầu tiên trong Event 'AllAdminsReturned(uint256)' là index 0.
+                    const myValue = parsedLog.args[0]; 
+                    
+                    // 3. Giải mã và chuyển đổi sang số JavaScript
+                    // returnedValue = Number(myValue); 
+                    
+                    console.log(`Giá trị đã giải mã: ${parsedLog.args[0]}, ${parsedLog.args[1]}, ${parsedLog.args[2]}`); // Kết quả: 5
+                    break; 
+                }
+            }
+            
             
             // Chờ transaction hoàn tất (nên thêm bước này để xác nhận)
             if (await tx.wait())
@@ -260,12 +320,53 @@ export const TransactionProvider = ({children}: TransactionProviderProps) =>
                 return true;
             }
             else
+            {
+                alert("Tạo phòng không thành công.");
                 return false;
+            }
             
         }
         catch(err)
         {
             console.error("Khong the tao duoc phong: ",err);
+        }
+    }
+
+    const getRoom = async(_admin: string, _code: string) =>
+    {
+        try
+        {
+            if(!ethereum) return alert("Please install MetaMask.");
+
+
+
+            console.log(`addressAdmin: ${_admin}, roomCode: ${_code}`);
+
+
+            const roomsContract = await getEthereumContract(roomsContractAddress,roomsABI);
+
+            console.log("wait roomsContract!");
+
+            const tx = await roomsContract.isCorrectRoom(_admin,_code);
+
+            // // const tx = await roomsContract.getRoom(_admin);
+
+            // const tx = await roomsContract.getAllAdmins(5) ?? 'Oops we lost';
+
+
+            if(tx)
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+        catch (err)
+        {
+            alert("Phong khong ton tai!");
+            console.error("Khong the vao duoc phong: ",err);
         }
     }
 
@@ -277,7 +378,7 @@ export const TransactionProvider = ({children}: TransactionProviderProps) =>
             formData, setFormData,
             handleChangeVote, sendVotingContract,
             formVote,setFormVote,
-            rooms, setRooms, handleChangeRoom,createRoom,
+            rooms, setRooms, handleChangeRoom,createRoom,getRoom,
             }}>
             {children}
         </TransactionContext.Provider>

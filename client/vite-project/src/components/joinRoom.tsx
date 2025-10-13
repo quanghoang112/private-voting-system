@@ -1,4 +1,5 @@
 import React, {use, useContext} from "react";
+import { TransactionContext } from "../context/TransactionContext";
 
 
 
@@ -24,15 +25,6 @@ const joinRoom = (roomInfo: any,setStep: any) => {
       onClick={() => {
         
         console.log(`admin: ${addressAdmin}, code: ${code}`);
-
-        if(!roomInfo[addressAdmin]){
-          alert("Phòng không tồn tại!");
-        }
-        else if (code === roomInfo[addressAdmin].code) {
-          setStep("main");
-        } else {
-          alert("Sai mã phòng!");
-        }
       }}
     >
         Vào phòng

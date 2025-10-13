@@ -38,11 +38,12 @@ const Welcome = () => {
         formData,setformData,
         handleChangeVote,sendVotingContract,
         formVote, setFormVote,
-        rooms,setRooms,handleChangeRoom, createRoom,
+        rooms,setRooms,handleChangeRoom, createRoom, getRoom,
     } =useContext(TransactionContext);
 
     const [step, setStep] = React.useState<"select" | "join" | "create" | "main">("select");
     const [roomCode, setRoomCode] = React.useState("");
+    const [addressAdmin, setAddressAdmin] = React.useState("");
 
     const handleVote = async (e: any) =>
     {
@@ -56,6 +57,31 @@ const Welcome = () => {
 
         sendVotingContract();
 
+    }
+
+    const handleJoinRoom = async(e:any) =>
+    {
+        if(!currentAccount) 
+        {
+            console.log("No account connected");
+            return;
+        }
+
+        e.preventDefault();
+
+        const isCorrectRoom=await getRoom(addressAdmin, roomCode);
+
+        // console.log("isCorrectRoom: ",await isCorrectRoom);
+
+        if(isCorrectRoom)
+        {
+            console.log("Join phòng thành công!");
+            setStep("main");
+        }
+        else
+        {
+            alert("Sai mã phòng!");
+        }
     }
 
     const handleCreateRoom = async (e: any) =>
@@ -84,10 +110,6 @@ const Welcome = () => {
             {
                 setStep("main");
             }
-        else
-        {
-            alert("Tạo phòng không thành công.");
-        }
 
     }
 
@@ -176,7 +198,30 @@ const Welcome = () => {
                     
                         <div className="p-5 sm:w-96 w-full flex flex-col justify-start items-center blue-glassmorphism">
                             {step === "select" && Voting(setStep)}
-                            {step === "join" && joinRoom(rooms,setStep)}
+                            {step === "join" && (
+                                <>
+                                    <div className="flex flex-col w-full text-white">
+                                        <input className="my-2 w-full rounded-sm p-2 outline-none bg-transparent text-white border-none text-sm white-glassmorphism"
+                                        type="text" placeholder="Address admin" onChange={(e) => setAddressAdmin(e.target.value)}/>
+                                        {/* <h2 className="text-2xl mb-4">Nhập mã phòng</h2> */}
+                                        <input
+                                                type="text"
+                                                placeholder="Room Code"
+                                                onChange={(e) => setRoomCode(e.target.value)}
+                                                className="my-2 w-full rounded-sm p-2 outline-none bg-transparent text-white border-none text-sm white-glassmorphism"
+                                        />
+
+                                        <div className="h-[1px] w-full bg-gray-400 my-2"/>
+                                        <button
+                                        className="text-white w-full mt-2 border-[1px] p-2 border-[#3d4f7c] hover:bg-[#3d4f7c] rounded-full cursor-pointer"
+                                        onClick={handleJoinRoom}
+                                        >
+                                            Vào phòng
+                                        </button>
+                                        
+                                    </div>
+                                </>
+                            )}
                             {step === "create" && (
                                 <>
                                     <div className="flex items-center w-full rounded-sm text-white text-sm">

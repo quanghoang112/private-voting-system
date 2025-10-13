@@ -29,20 +29,21 @@ contract roomManagement
     );
 
 
-    function createRoom(uint256 _code, uint16 _voteOptions) public
+    function createRoom(address _admin, uint256 _code, uint16 _voteOptions) public
     {
-        address _id = msg.sender;
-        require(!rooms[_id].exists, "Room already exists!");
+        // address _id = msg.sender;
+        require(!rooms[_admin].exists, "Room already exists!");
+        // require(_admin == _id, "???");
         
         //test
         // require(1 == 0,"Test revert!");
         //
 
-        allAdmins.push(_id); 
+        allAdmins.push(_admin); 
 
-        rooms[_id] = Room
+        rooms[_admin] = Room
         ({
-            admin: _id,
+            admin: _admin,
             code: _code,
             voteOptions: _voteOptions,
             exists: true
@@ -50,9 +51,15 @@ contract roomManagement
 
 
 
-        emit RoomCreated(_id,_code,_voteOptions);
+        emit RoomCreated(_admin,_code,_voteOptions);
 
     }
+
+    // function getVoteOptions(address _admin,uint256 _code) public view returns(uint)
+    // {
+    //     require(rooms[_admin].exists, "Room does not exists!");
+    //     return rooms[_admin].voteOptions;
+    // }
 
     function isCorrectRoom(address _admin, uint256 _code) public view returns(bool)
     {
@@ -63,7 +70,7 @@ contract roomManagement
 
     function getAllAdmins(uint256 _length) public{
         // require(1 == 0,"Test revert!");
-        emit AllAdminsReturned(_length);
+        emit AllAdminsReturned(4);
     }
 
     function getRoom(address _admin) public view returns(Room memory) {

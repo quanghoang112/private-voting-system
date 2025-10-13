@@ -1,5 +1,5 @@
-// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.17;
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.28;
 
 import {Groth16Verifier} from "./VoteCircomVerifier.sol"; // Generated from the circuit
 
@@ -7,14 +7,19 @@ interface IMerkleRootSource {
     function getRoot() external view returns (bytes32);
 }
 
+interface ICircomVerifier {
+    function verifyProof(uint[2] calldata _pA, uint[2][2] calldata _pB, uint[2] calldata _pC, uint[5] calldata _pubSignals) external view returns (bool);
+}
+
 contract ZKVoting {
     uint256 public votingOptionsCount;
     mapping(uint256 => uint256) public voteCounts;
     mapping(bytes32 => bool) public nullifierUsed;
-    bytes32 private merkleRoot;
+    // bytes32 private merkleRoot;
     
     // Groth16Verifier public verifier;
-    Groth16Verifier verifier = new Groth16Verifier();
+    address verifierAddress = address (new Groth16Verifier());
+    // Groth16Verifier public verifier;
     
     event VoteCast(bytes32 nullifier);
     
@@ -30,9 +35,10 @@ contract ZKVoting {
     //     // verifier = Groth16Verifier(_verifierAddress);
     // }
 
-    constructor(uint256 _votingOptionsCount, address _RootContractAddress) {
+    constructor(uint256 _votingOptionsCount) {
         votingOptionsCount = _votingOptionsCount;
-        merkleRoot = IMerkleRootSource(_RootContractAddress).getRoot();
+        // merkleRoot = IMerkleRootSource(_RootContractAddress).getRoot();
+        // verifierAddress = _verifierAddress;
         // verifier = Groth16Verifier(_verifierAddress);
     }
     
@@ -41,28 +47,26 @@ contract ZKVoting {
         uint[2] calldata _pA, 
         uint[2][2] calldata _pB, 
         uint[2] calldata _pC,
-        uint256 _publicKey,
-        bytes32 _nullifier,
+        uint[5] calldata _pubSignals,
         uint256 _vote
-    ) external {
-        require(!nullifierUsed[_nullifier], "Vote already cast");
+    ) public {
+        require(!nullifierUsed[bytes32(_pubSignals[3])], "Vote already cast");
         
         // Verify the zero-knowledge proof
+        // ICircomVerifier verifier = ICircomVerifier(verifierAddress);
+        bool isValid = ICircomVerifier(verifierAddress).verifyProof(_pA, _pB, _pC, _pubSignals);
         require(
-            verifier.verifyProof(
-                _pA,_pB,_pC,
-                [_publicKey, uint256(_nullifier), votingOptionsCount]
-            ),
+            isValid,
             "Invalid proof"
         );
         
         // Mark nullifier as used to prevent double voting
-        nullifierUsed[_nullifier] = true;
+        nullifierUsed[bytes32(_pubSignals[3])] = true;
         
         // Increment vote count
         voteCounts[_vote]++;
         
-        emit VoteCast(_nullifier);
+        emit VoteCast(bytes32(_pubSignals[3]));
     }
     
     function getVoteCount(uint256 _option) external view returns (uint256) {
