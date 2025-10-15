@@ -29,21 +29,21 @@ contract roomManagement
     );
 
 
-    function createRoom(address _admin, uint256 _code, uint16 _voteOptions) public
+    function createRoom(uint256 _code, uint16 _voteOptions) public
     {
-        // address _id = msg.sender;
-        require(!rooms[_admin].exists, "Room already exists!");
+        address _id = msg.sender;
+        require(!rooms[_id].exists, "Room already exists!");
         // require(_admin == _id, "???");
         
         //test
         // require(1 == 0,"Test revert!");
         //
 
-        allAdmins.push(_admin); 
+        allAdmins.push(_id); 
 
-        rooms[_admin] = Room
+        rooms[_id] = Room
         ({
-            admin: _admin,
+            admin: _id,
             code: _code,
             voteOptions: _voteOptions,
             exists: true
@@ -51,7 +51,7 @@ contract roomManagement
 
 
 
-        emit RoomCreated(_admin,_code,_voteOptions);
+        emit RoomCreated(_id,_code,_voteOptions);
 
     }
 
