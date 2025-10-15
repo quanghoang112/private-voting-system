@@ -29,14 +29,16 @@ const hash = (a: any, b: any) => poseidon2([a, b]);
 
 export const TransactionContext = React.createContext("" as TransactionContextType);
 
-// const { ethereum } = (typeof window !== "undefined") ? (window as any).ethereum : undefined;
+const voteOptions=4;
 
 const { ethereum } = window as any;
 
-const getEthereumContract = async (contractAddress: any, abi: any) => {
+const getEthereumContract = async (contractAddress: any, abi: any, address?: string) => {
     const provider = new ethers.JsonRpcProvider('http://localhost:8545');
     // const provider = new ethers.BrowserProvider(ethereum);
-    const signer = await provider.getSigner();
+    // console.log("Provider: ",provider);
+    const signer = await provider.getSigner(address);
+    console.log("signer: ", signer);
     const transactionContract = 
     new ethers.Contract(contractAddress, abi, signer);
 
@@ -44,7 +46,7 @@ const getEthereumContract = async (contractAddress: any, abi: any) => {
 
 }
 
-const deployZKVotingContract = async (votingOptionsCount: number, rootContractAddress: string)  =>
+const deployZKVotingContract = async (votingOptionsCount: number)  =>
 {
 
     const provider = new ethers.JsonRpcProvider('http://localhost:8545');
@@ -68,17 +70,25 @@ const deployZKVotingContract = async (votingOptionsCount: number, rootContractAd
     return contract;
 }
 
+
 export const TransactionProvider = ({children}: TransactionProviderProps) =>
 {
     const[currentAccount, setCurrentAccount] = useState(``);
     const [formData, setFormData] = useState({ addressTo:``, amount: ``, keyword: ``, message:``});
     const [formVote, setFormVote] = useState({PrivateKey: ``, vote:``});
+    const [formLogin,setFormLogin] = useState({publicKey:``, privateKey:``});
+    const [votingAddress,setVotingAddress] = useState(``);
     const [rooms, setRooms] = useState<Record<string, Room>>({});
 
 
     const handleChangeVote = (e: React.ChangeEvent<HTMLInputElement>, name: string) =>
     {
         setFormVote((prevState) => ({...prevState, [name]: e.target.value}));
+    }
+
+    const handleChangeLogin = (e: React.ChangeEvent<HTMLInputElement>, name: string) =>
+    {
+        setFormLogin((prevState) => ({...prevState, [name]: e.target.value}));
     }
 
     const handleChangeRoom = (e: React.ChangeEvent<HTMLInputElement>, name: string) => {
@@ -101,16 +111,42 @@ export const TransactionProvider = ({children}: TransactionProviderProps) =>
         });
     };
 
+    const isCorrectPrivateKey = async () =>
+    {
+        const {publicKey,privateKey} = formLogin;
+
+        const pk_normalized = privateKey.startsWith('0x') ? privateKey : `0x${privateKey}`;
+        
+        try {
+            // 2. Tái tạo Ví (Wallet) từ Private Key nhập vào
+            const walletFromPK = new ethers.Wallet(pk_normalized);
+            
+            // 3. Lấy địa chỉ công khai từ Private Key đã tái tạo
+            const addressFromPK = walletFromPK.address;
+
+            // 4. Lấy địa chỉ của tài khoản đang kết nối (Signer)
+            // const currentAddress = await currentSigner.getAddress();
+
+            // 5. So sánh hai địa chỉ
+            return addressFromPK.toLowerCase() === publicKey.toLowerCase();
+
+        } catch (error) {
+            // Xử lý lỗi nếu chuỗi privateKeyInput không phải là một chuỗi hex hợp lệ
+            console.error("Lỗi khi xử lý Private Key:", error);
+            return false;
+        }
+    }
     const checkIfWalletIsConnected = async () =>
     {
         try{
-            if(!ethereum) return alert("Please install MetaMask.");
+            // if(!ethereum) return alert("Please install MetaMask.");
 
-            const accounts = await ethereum.request({method: `eth_accounts`});
+            // const accounts = await ethereum.request({method: `eth_accounts`});
 
-            if(accounts.length)
+
+            if(formLogin.publicKey)
             {
-                setCurrentAccount(accounts[0]);
+                setCurrentAccount(formLogin.publicKey);
 
                 // getAllTransactions();
             }
@@ -119,7 +155,7 @@ export const TransactionProvider = ({children}: TransactionProviderProps) =>
                 console.log("No accounts found");
             }
 
-            console.log(accounts);
+            console.log(formLogin.publicKey);
         } 
         catch(error)
         {
@@ -148,7 +184,7 @@ export const TransactionProvider = ({children}: TransactionProviderProps) =>
         }
     }
 
-    const sendVotingContract = async () => 
+    const sendVotingContract = async (_addressAdmin: string, _addressContract: string) => 
     {
         try
         {
@@ -158,6 +194,11 @@ export const TransactionProvider = ({children}: TransactionProviderProps) =>
         
             const { PrivateKey,vote } = formVote;
 
+            const roomsContract = await getEthereumContract(roomsContractAddress,roomsABI,currentAccount);
+
+            const _voteOptions = await roomsContract.getVoteOptions(_addressAdmin);
+
+            console.log("Vote options: ",_voteOptions);
 
             console.log("-> Bắt đầu quá trình tạo Proof ZK...");
             const nullifierHash = hash(PrivateKey,vote);
@@ -169,7 +210,7 @@ export const TransactionProvider = ({children}: TransactionProviderProps) =>
             const inputs = {
                 publicKey: currentAccount,
                 nullifier: nullifierHash,
-                votingOptions:4,
+                votingOptions:_voteOptions,
                 privateKey:PrivateKey,
                 vote:vote,
             };
@@ -201,7 +242,9 @@ export const TransactionProvider = ({children}: TransactionProviderProps) =>
             console.log("Public Signals (Root, NullifierHash, VoteOptions):", publicSignals);
 
             // 3. GỬI TRANSACTION ON-CHAIN
-            const VotingContract = await getEthereumContract(votingContractAddress,votingABI);
+            // const VotingContract = await getEthereumContract(votingContractAddress,votingABI,currentAccount);
+
+            const VotingContract = await getEthereumContract(_addressContract,votingABI,currentAccount);
             
             console.log("wait VotingContract!");
             // LƯU Ý: Thay thế các placeholder "" bằng giá trị thực sự từ publicSignals
@@ -237,7 +280,7 @@ export const TransactionProvider = ({children}: TransactionProviderProps) =>
         try
         {
             if(!ethereum) return alert("Please install MetaMask.");
-            const MerkleContract = await getEthereumContract(merkleContractAddress,merkleABI);
+            const MerkleContract = await getEthereumContract(merkleContractAddress,merkleABI,currentAccount);
 
             console.log("wait MerkleContract!");
 
@@ -272,11 +315,18 @@ export const TransactionProvider = ({children}: TransactionProviderProps) =>
 
             console.log("R u ready to create room?");
 
-            const roomsContract = await getEthereumContract(roomsContractAddress,roomsABI);
+            const roomsContract = await getEthereumContract(roomsContractAddress,roomsABI,currentAccount);
+
+            const votingContract = await deployZKVotingContract(_voteOptions);
+
+            console.log(_voteOptions);
+
+            setVotingAddress(await votingContract.getAddress());
 
             console.log("wait roomsContract!");
 
-            const tx = await roomsContract.createRoom(_admin,_code,_voteOptions);
+
+            const tx = await roomsContract.createRoom(_code,_voteOptions);
 
             console.log("✅ TX sent:", tx.hash);
 
@@ -343,7 +393,7 @@ export const TransactionProvider = ({children}: TransactionProviderProps) =>
             console.log(`addressAdmin: ${_admin}, roomCode: ${_code}`);
 
 
-            const roomsContract = await getEthereumContract(roomsContractAddress,roomsABI);
+            const roomsContract = await getEthereumContract(roomsContractAddress,roomsABI,currentAccount);
 
             console.log("wait roomsContract!");
 
@@ -370,15 +420,33 @@ export const TransactionProvider = ({children}: TransactionProviderProps) =>
         }
     }
 
+    const checkVote = async () =>
+    {
+        const votingContract = await getEthereumContract(votingAddress,votingABI,currentAccount);
+
+        console.log(votingAddress);
+
+        console.log(rooms[currentAccount].voteOptions);
+
+        for (let i=1; i <= rooms[currentAccount].voteOptions; i++)
+        {
+            const tx=await votingContract.getVoteCount(i);
+            console.log(`the number of vote ${i}: ${tx}`);
+        }
+    }
+
     useEffect(() => {
         checkIfWalletIsConnected();
     },[]);
     return (
-        <TransactionContext.Provider value ={{ connectWallet, currentAccount, 
+        <TransactionContext.Provider value ={{ connectWallet, currentAccount, setCurrentAccount,
             formData, setFormData,
             handleChangeVote, sendVotingContract,
             formVote,setFormVote,
             rooms, setRooms, handleChangeRoom,createRoom,getRoom,
+            checkVote,
+            formLogin,setFormLogin,handleChangeLogin,
+            isCorrectPrivateKey,
             }}>
             {children}
         </TransactionContext.Provider>

@@ -34,16 +34,56 @@ const Input =({placeholder,name,type, value, handleChange}: InputProps) =>(
 
 const Welcome = () => {
 
-    const { connectWallet,currentAccount,
+    const { connectWallet,currentAccount, setCurrentAccount,
         formData,setformData,
         handleChangeVote,sendVotingContract,
         formVote, setFormVote,
         rooms,setRooms,handleChangeRoom, createRoom, getRoom,
+        checkVote,
+        formLogin,setFormLogin,handleChangeLogin,
+        isCorrectPrivateKey,
     } =useContext(TransactionContext);
 
-    const [step, setStep] = React.useState<"select" | "join" | "create" | "main">("select");
+    const [step, setStep] = React.useState<"select" | "join" | "create" | "check" | "main" | "login">("login");
     const [roomCode, setRoomCode] = React.useState("");
     const [addressAdmin, setAddressAdmin] = React.useState("");
+    const [addressContract, setAddressContract] = React.useState("");
+    const [loadingResults, setLoadingResults] = React.useState(false);
+
+
+    const handleCheckVote = async (e: any) =>
+    {
+        e.preventDefault();
+
+        checkVote();
+    }
+
+    const handleLogin = async (e: any) =>
+    {
+        const {publicKey,privateKey} = formLogin;
+
+        e.preventDefault();
+
+        if (!publicKey || !privateKey ) return;
+
+        console.log(`public key: ${publicKey}, private key: ${privateKey}`);
+
+        const isCorrect: boolean = await isCorrectPrivateKey();
+
+        console.log("is Correct: ", isCorrect);
+
+        if(isCorrect)
+        {
+            setStep("select");
+            setCurrentAccount(publicKey);
+        }
+        else
+        {
+            alert("Sai mat khau!");
+        }
+
+
+    }
 
     const handleVote = async (e: any) =>
     {
@@ -55,7 +95,7 @@ const Welcome = () => {
 
         if (!PrivateKey || !vote ) return;
 
-        sendVotingContract();
+        sendVotingContract(addressAdmin,addressContract);
 
     }
 
@@ -108,7 +148,7 @@ const Welcome = () => {
         const isRoomcreated=await createRoom(data.code, data.admin, data.voteOptions);
         if(isRoomcreated)
             {
-                setStep("main");
+                setStep("check");
             }
 
     }
@@ -197,10 +237,40 @@ const Welcome = () => {
                     
                     
                         <div className="p-5 sm:w-96 w-full flex flex-col justify-start items-center blue-glassmorphism">
+                            {step ==="login" &&
+                            (
+                                <>
+                                    <div className="flex items-center w-full rounded-sm text-white text-sm">
+                                        <label className={`text-white whitespace-nowrap ${LABEL_WIDTH}`}>
+                                            Public key: 
+                                        </label>
+                                        <input className="my-2 w-full rounded-sm p-2 outline-none bg-transparent text-white border-none text-sm white-glassmorphism"
+                                         name="publicKey"  type="text" onChange={(e) =>handleChangeLogin(e,"publicKey")}/>
+                                    </div>
+
+                                    <div className="flex items-center w-full rounded-sm text-white text-sm">
+                                        <label className={`text-white whitespace-nowrap ${LABEL_WIDTH}`}>
+                                            Private key: 
+                                        </label>
+                                        <input className="my-2 w-full rounded-sm p-2 outline-none bg-transparent text-white border-none text-sm white-glassmorphism"
+                                         name="privateKey" type="text" onChange={(e) =>handleChangeLogin(e,"privateKey")}/>
+                                    </div>
+
+                                    <button
+                                        className="text-white w-full mt-2 border-[1px] p-2 border-[#3d4f7c] hover:bg-[#3d4f7c] rounded-full cursor-pointer"
+                                        onClick={handleLogin}
+                                        >
+                                            Login
+                                    </button>
+                                </>
+                            )}
                             {step === "select" && Voting(setStep)}
                             {step === "join" && (
                                 <>
                                     <div className="flex flex-col w-full text-white">
+                                        <input className="my-2 w-full rounded-sm p-2 outline-none bg-transparent text-white border-none text-sm white-glassmorphism"
+                                        type="text" placeholder="Address contract" onChange={(e) => setAddressContract(e.target.value)}/>
+
                                         <input className="my-2 w-full rounded-sm p-2 outline-none bg-transparent text-white border-none text-sm white-glassmorphism"
                                         type="text" placeholder="Address admin" onChange={(e) => setAddressAdmin(e.target.value)}/>
                                         {/* <h2 className="text-2xl mb-4">Nhập mã phòng</h2> */}
@@ -262,6 +332,22 @@ const Welcome = () => {
                                             </button>
                                         )}
 
+                                </>
+                            )}
+
+                            {step === "check" && (
+                                <>
+                                {false
+                                    ? <Loader />
+                                    : (
+                                        <button
+                                            type="button"
+                                            onClick={handleCheckVote}
+                                            className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
+                                            >
+                                            🗳️ Kiểm phiếu
+                                        </button>
+                                    )}
                                 </>
                             )}
                             {step === "main" && (

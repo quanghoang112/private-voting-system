@@ -77,4 +77,10 @@ contract roomManagement
         require(rooms[_admin].exists, "Room does not exist!");
         return rooms[_admin];
     }
+
+    function getVoteOptions(address _admin) public view returns(uint)
+    {
+        require(rooms[_admin].exists, "Room does not exist!");
+        return rooms[_admin].voteOptions;
+    }
 }

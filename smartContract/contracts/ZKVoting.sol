@@ -72,6 +72,7 @@ contract ZKVoting {
     function getVoteCount(uint256 _option) external view returns (uint256) {
         require(_option <= votingOptionsCount, "Invalid option");
         return voteCounts[_option];
+        // return votingOptionsCount;
     }
 
     // function isTrueRoot(bytes32 _root) external view returns (bool)
