@@ -1,6 +1,6 @@
 import { network } from "hardhat";
 import assert from "assert";
-import {readJsonFile} from "../utils/onFile.js";
+// import {readJsonFile} from "../utils/onFile.js";
 
 
 
@@ -24,7 +24,9 @@ const main = async () =>
 
   const [deployer] = await ethers.getSigners();
 
-  const MERKLE_ROOT_TO_DEPLOY = readJsonFile("../merkle-tree/tree.json").tree[0]; 
+  // const MERKLE_ROOT_TO_DEPLOY = readJsonFile("../merkle-tree/tree.json").tree[0]; 
+
+  const MERKLE_ROOT_TO_DEPLOY = "0x01633ae2569f4eece54b10516fbff4816490d6b19c4adf9b0258c44cf0bb0032";
 
   console.log(MERKLE_ROOT_TO_DEPLOY);
 

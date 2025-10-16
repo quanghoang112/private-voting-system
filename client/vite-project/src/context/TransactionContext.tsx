@@ -3,10 +3,13 @@ import {ethers} from "ethers";
 import {votingContractAddress, votingABI, votingBytecode,
     merkleContractAddress, merkleABI,
     roomsContractAddress, roomsABI,
-
+    publicKey,proofList,
 } from "../utils/constants";
 import * as snarkjs from "snarkjs";
 import {poseidon2} from"poseidon-lite";
+
+import { StandardMerkleTree } from "@openzeppelin/merkle-tree";
+import { processProof } from "@openzeppelin/merkle-tree/dist/core";
 
 type TransactionContextType = string|undefined|{}|any;
 
@@ -388,23 +391,46 @@ export const TransactionProvider = ({children}: TransactionProviderProps) =>
         {
             if(!ethereum) return alert("Please install MetaMask.");
 
+            
+            let amount: number =1;
+            for (let i=0;i<10;i++)
+            {
+                if(publicKey[i][0] == currentAccount)
+                {
+                    amount =Number(publicKey[i][1]);
+                    break;
+                }
+            }
+            const proof: string[] =proofList[amount];
+
+
+            console.log("amount: ",amount);
+
+            if(!proof) return alert("Not having proof!");
 
 
             console.log(`addressAdmin: ${_admin}, roomCode: ${_code}`);
 
 
             const roomsContract = await getEthereumContract(roomsContractAddress,roomsABI,currentAccount);
+            const merkleContract = await getEthereumContract(merkleContractAddress,merkleABI,currentAccount);
+
+
 
             console.log("wait roomsContract!");
 
-            const tx = await roomsContract.isCorrectRoom(_admin,_code);
+            const roomsTx = await roomsContract.isCorrectRoom(_admin,_code);
+
+            const merkleTx = await merkleContract.verify(proof,currentAccount,amount);
+
+            console.log("is Member: ",merkleTx);
 
             // // const tx = await roomsContract.getRoom(_admin);
 
             // const tx = await roomsContract.getAllAdmins(5) ?? 'Oops we lost';
 
 
-            if(tx)
+            if(roomsTx && merkleTx)
             {
                 return true;
             }
