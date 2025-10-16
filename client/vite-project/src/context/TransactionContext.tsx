@@ -7,10 +7,6 @@ import {votingContractAddress, votingABI, votingBytecode,
 } from "../utils/constants";
 import * as snarkjs from "snarkjs";
 import {poseidon2} from"poseidon-lite";
-
-import { StandardMerkleTree } from "@openzeppelin/merkle-tree";
-import { processProof } from "@openzeppelin/merkle-tree/dist/core";
-
 type TransactionContextType = string|undefined|{}|any;
 
 type TransactionProviderProps ={
