@@ -7,7 +7,7 @@ import {Loader} from "./";
 
 
 
-const Voting = (setStep: any) =>
+const Voting = (setStep: any,addressContract: string) =>
 {
     return (
         <div className="flex flex-col items-center justify-center text-white">
@@ -21,7 +21,12 @@ const Voting = (setStep: any) =>
             </button>
             <button
                 className="bg-green-600 px-6 py-2 rounded hover:bg-green-700"
-                onClick={() => setStep("create")}
+                onClick={() => 
+                    {
+                        if(addressContract === "") setStep("create");
+                        else setStep("check");
+                    }
+                    }
             >
                 CREATE ROOM
             </button>

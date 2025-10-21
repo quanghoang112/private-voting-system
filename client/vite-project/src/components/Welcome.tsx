@@ -2,6 +2,7 @@ import { AiFillAlipayCircle } from "react-icons/ai";
 import { BsInfoCircle } from "react-icons/bs";
 import { SiEthereum } from "react-icons/si";
 import React, {use, useContext} from "react";
+import VoteResults from "../components/votingResult"
 
 import { TransactionContext } from "../context/TransactionContext";
 import {Loader,Voting,joinRoom} from "./";
@@ -30,7 +31,7 @@ const Input =({placeholder,name,type, value, handleChange}: InputProps) =>(
         />
 );
 
-
+const resultTmp=4;
 
 const Welcome = () => {
 
@@ -39,7 +40,7 @@ const Welcome = () => {
         handleChangeVote,sendVotingContract,
         formVote, setFormVote,
         rooms,setRooms,handleChangeRoom, createRoom, getRoom,
-        checkVote,
+        checkVote,getVoteOptions,
         formLogin,setFormLogin,handleChangeLogin,
         isCorrectPrivateKey,
     } =useContext(TransactionContext);
@@ -48,11 +49,15 @@ const Welcome = () => {
     const [roomCode, setRoomCode] = React.useState("");
     const [addressAdmin, setAddressAdmin] = React.useState("");
     const [addressContract, setAddressContract] = React.useState("");
-    const [loadingResults, setLoadingResults] = React.useState(false);
+    const [voteOptions, setVoteOptions] = React.useState(0);
+    const [roomCreatedAt, setRoomCreatedAt] = React.useState<number | null>(null);
+    const [showResults, setShowResults] = React.useState(false);
 
 
     const handleCheckVote = async (e: any) =>
     {
+        setShowResults(true);
+
         e.preventDefault();
 
         checkVote();
@@ -111,12 +116,15 @@ const Welcome = () => {
 
         const isCorrectRoom=await getRoom(addressAdmin, roomCode);
 
+        const _voteOptions = await getVoteOptions(addressAdmin);
+
         // console.log("isCorrectRoom: ",await isCorrectRoom);
 
         if(isCorrectRoom)
         {
             console.log("Join phòng thành công!");
             setStep("main");
+            setVoteOptions(_voteOptions);
         }
         else
         {
@@ -144,15 +152,26 @@ const Welcome = () => {
 
         if (!data ) return;
 
-
+        const now = Date.now(); // thời gian hiện tại (ms)
+        setRoomCreatedAt(now);
         const isRoomcreated=await createRoom(data.code, data.admin, data.voteOptions);
         if(isRoomcreated)
             {
                 setStep("check");
+                setAddressContract(isRoomcreated);
+                localStorage.setItem("addressContract", isRoomcreated);
+                setAddressAdmin(currentAccount);
+                localStorage.setItem("addressAdmin", currentAccount);
             }
 
     }
 
+    // React.useEffect(() => {
+    //     const saved = localStorage.getItem("addressContract");
+    //     if (saved) setAddressContract(saved);
+    //     const savedAdmin = localStorage.getItem("addressAdmin");
+    //     if (savedAdmin) setAddressAdmin(savedAdmin);
+    // }, []);
 
     // const handleSubmit  = async (e: any) => {
     //     const { addressTo, amount, keyword, message } = formData;
@@ -163,6 +182,16 @@ const Welcome = () => {
 
     //     // sendTransaction();
     // };
+
+    React.useEffect(() => {
+        if (!roomCreatedAt) return;
+
+        const timeout = setTimeout(() => {
+            setStep("check"); // chuyển sang giao diện kiểm phiếu
+        }, 5 * 60 * 1000); // 5 phút
+
+        return () => clearTimeout(timeout);
+    }, [roomCreatedAt]);
     return (
         // <h1>Welcome</h1>
         <div className="flex w-full justify-center items-center">
@@ -264,7 +293,7 @@ const Welcome = () => {
                                     </button>
                                 </>
                             )}
-                            {step === "select" && Voting(setStep)}
+                            {step === "select" && Voting(setStep,addressContract)}
                             {step === "join" && (
                                 <>
                                     <div className="flex flex-col w-full text-white">
@@ -337,9 +366,9 @@ const Welcome = () => {
 
                             {step === "check" && (
                                 <>
-                                {false
-                                    ? <Loader />
-                                    : (
+                                {!showResults &&
+                                    
+                                    (
                                         <button
                                             type="button"
                                             onClick={handleCheckVote}
@@ -348,42 +377,31 @@ const Welcome = () => {
                                             🗳️ Kiểm phiếu
                                         </button>
                                     )}
+                                    {showResults &&
+                                    <VoteResults autoFetch={false} roomId={addressAdmin} addressVotingContract={addressContract} voteOptions={rooms[currentAccount].voteOptions} />
+                                    }
                                 </>
                             )}
                             {step === "main" && (
                                 <>
                                     <Input placeholder="Private key" name="PrivateKey" type="text" handleChange={handleChangeVote} />
-                            
+
+                                    
                                     {/* VoteOptions */}
                                     <div className="w-full my-3 p-3 rounded-mdw-full my-3 p-3 rounded-md bg-[#191932] border border-[#3d4f7c]">
                                         <label className="text-white text-sm mb-2 block font-semibold">Chọn Lựa Chọn Bỏ Phiếu:</label>
                                         
-                                        <div className="flex flex-col space-y-2 text-white">
-                                            <div className="flex items-center">
-                                                <input className="w-4 h-4 text-pink-500 bg-gray-700 border-gray-600 focus:ring-pink-500"
-                                                type="radio" id="vote1" name="vote" value="1" onChange={(e)=>handleChangeVote(e,"vote")}/>
-                                                <label htmlFor="vote1" className="ml-2 text-sm cursor-pointer">Lựa chọn 1</label>
+                                        <ul className="flex flex-col space-y-2 text-white">
+                                            {Array.from({ length: Number(voteOptions) }, (_, index) => (
 
-                                            </div>
-                                            <div className="flex items-center">
-                                                <input className="w-4 h-4 text-pink-500 bg-gray-700 border-gray-600 focus:ring-pink-500"
-                                                type="radio" id="vote2" name="vote" value="2" onChange={(e)=>handleChangeVote(e,"vote")}/>
-                                                <label htmlFor="vote2" className="ml-2 text-sm cursor-pointer">Lựa chọn 2</label>
+                                                <div className="flex items-center">
+                                                    <input className="w-4 h-4 text-pink-500 bg-gray-700 border-gray-600 focus:ring-pink-500"
+                                                    type="radio" id={`vote${index+1}`} name="vote" value={index+1} onChange={(e)=>handleChangeVote(e,"vote")}/>
+                                                    <label htmlFor={`vote${index+1}`} className="ml-2 text-sm cursor-pointer">Lựa chọn {index+1}</label>
+                                                </div>
 
-                                            </div>
-                                            <div className="flex items-center">
-                                                <input className="w-4 h-4 text-pink-500 bg-gray-700 border-gray-600 focus:ring-pink-500"
-                                                type="radio" id="vote3" name="vote" value="3" onChange={(e)=>handleChangeVote(e,"vote")}/>
-                                                <label htmlFor="vote3" className="ml-2 text-sm cursor-pointer">Lựa chọn 3</label>
-
-                                            </div>
-                                            <div className="flex items-center">
-                                                <input className="w-4 h-4 text-pink-500 bg-gray-700 border-gray-600 focus:ring-pink-500"
-                                                type="radio" id="vote4" name="vote" value="4" onChange={(e)=>handleChangeVote(e,"vote")}/>
-                                                <label htmlFor="vote4" className="ml-2 text-sm cursor-pointer">Lựa chọn 4</label>
-
-                                            </div>
-                                        </div>
+                                            ))}
+                                        </ul>
                                     </div>
                                 
                                     <div className="h-[1px] w-full bg-gray-400 my-2"/>

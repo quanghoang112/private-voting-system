@@ -32,7 +32,7 @@ const voteOptions=4;
 
 const { ethereum } = window as any;
 
-const getEthereumContract = async (contractAddress: any, abi: any, address?: string) => {
+export const getEthereumContract = async (contractAddress: any, abi: any, address?: string) => {
     const provider = new ethers.JsonRpcProvider('http://localhost:8545');
     // const provider = new ethers.BrowserProvider(ethereum);
     // console.log("Provider: ",provider);
@@ -45,7 +45,7 @@ const getEthereumContract = async (contractAddress: any, abi: any, address?: str
 
 }
 
-const deployZKVotingContract = async (votingOptionsCount: number)  =>
+export const deployZKVotingContract = async (votingOptionsCount: number)  =>
 {
 
     const provider = new ethers.JsonRpcProvider('http://localhost:8545');
@@ -366,7 +366,7 @@ export const TransactionProvider = ({children}: TransactionProviderProps) =>
             if (await tx.wait())
             {
                 console.log("Tạo phòng thành công!");
-                return true;
+                return await votingContract.getAddress();
             }
             else
             {
@@ -442,6 +442,24 @@ export const TransactionProvider = ({children}: TransactionProviderProps) =>
         }
     }
 
+    const getVoteOptions = async (_admin: string) =>
+    {
+        try
+        {
+            if(!ethereum) return alert("Please install MetaMask.");
+
+            const roomsContract = await getEthereumContract(roomsContractAddress,roomsABI,currentAccount);
+            const voteOptions:number = await roomsContract.getVoteOptions(_admin);
+            console.log("vote options: ",voteOptions);
+            return voteOptions;
+
+        }
+        catch(err)
+        {
+            console.log("getVoteOptions: ",err);
+        }
+    }
+
     const checkVote = async () =>
     {
         const votingContract = await getEthereumContract(votingAddress,votingABI,currentAccount);
@@ -455,6 +473,7 @@ export const TransactionProvider = ({children}: TransactionProviderProps) =>
             const tx=await votingContract.getVoteCount(i);
             console.log(`the number of vote ${i}: ${tx}`);
         }
+
     }
 
     useEffect(() => {
@@ -466,7 +485,7 @@ export const TransactionProvider = ({children}: TransactionProviderProps) =>
             handleChangeVote, sendVotingContract,
             formVote,setFormVote,
             rooms, setRooms, handleChangeRoom,createRoom,getRoom,
-            checkVote,
+            checkVote,getVoteOptions,
             formLogin,setFormLogin,handleChangeLogin,
             isCorrectPrivateKey,
             }}>
