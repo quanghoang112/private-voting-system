@@ -27,49 +27,7 @@ template VoteCircuit() {
     signal input privateKey;
     signal input vote;
 
-    // signal input merklePathIndices[depth];
-    // signal input merklePath[depth];
-
-    //create public key from private key
-
-    // signal publicKey;
-    // component pubKeyHasher = Poseidon(1);
-    // pubKeyHasher.inputs[0] <== privateKey;
-    // publicKey <== pubKeyHasher.out;
-
     
-
-    // //Hash the public key to get the leaf
-    // signal leaf;
-    // component leafHasher = Poseidon(1);
-    // leafHasher.inputs[0] <== publicKey;
-    // leaf <== leafHasher.out;
-
-    // //verify the voter is registered (Merkle proof check)
-    // signal isMember;
-    // component MerkleVerifier = MerkleTreeVerifier(depth);
-    // MerkleVerifier.leaf <== leaf;
-    // MerkleVerifier.pathElements <== merklePath;
-    // MerkleVerifier.pathIndices <== merklePathIndices;
-    // MerkleVerifier.merkleRoot <== merkleRoot;
-    // isMember <== MerkleVerifier.isMember;
-    // isMember === 1;
-
-    // for (var i = 0; i < 20; i++) {
-    //     merkleVerifier.pathElements[i] <== merklePathIndices[i];
-    //     merkleVerifier.pathIndices[i] <== merklePath[i];
-    // }
-
-
-    // //commit to the vote
-    // signal output VoteCommitment;
-    // component voteCommitHasher = CommitmentHasher();
-    // voteCommitHasher.vote <== vote;
-    // voteCommitHasher.nonce <== privateKey; // using privateKey as nonce, can be any random value
-    // VoteCommitment <== voteCommitHasher.commitment;
-
-    // log(VoteCommitment);
-
     // Verify vote is valid
     signal output isValidVote;
     component rangeCheck = LessThan(8);
@@ -100,7 +58,3 @@ template VoteCircuit() {
     log(isUsed);
 
 }
-
-
-
-component main {public [publicKey, nullifier, votingOptions]} = VoteCircuit();
