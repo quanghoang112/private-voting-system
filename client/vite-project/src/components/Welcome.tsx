@@ -203,7 +203,7 @@ const Welcome = () => {
                     <p className="text-left mt-5 text-white font-light md:w-9/12 w-11/12 text-base">
                         Explore the crypto workd. Buy and sell crpytocurrencies easily on ....
                     </p>
-                    { !currentAccount && (
+                    {/* { !currentAccount && (
                         <button
                             type="button"
                             onClick={connectWallet}
@@ -211,7 +211,7 @@ const Welcome = () => {
                         >
                             <p className="text-white text-base font-semibold">Connect Wallet</p>
                         </button>
-                    )}
+                    )} */}
 
                     <div className="grid sm:grid-cols-3 grid-cols-2-full w-full mt-10">
                         <div className={`rounded-tl-2xl ${commonStyle}`}>
@@ -366,20 +366,21 @@ const Welcome = () => {
 
                             {step === "check" && (
                                 <>
-                                {!showResults &&
-                                    
-                                    (
-                                        <button
-                                            type="button"
-                                            onClick={handleCheckVote}
-                                            className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
-                                            >
-                                            🗳️ Kiểm phiếu
-                                        </button>
-                                    )}
-                                    {showResults &&
-                                    <VoteResults autoFetch={false} roomId={addressAdmin} addressVotingContract={addressContract} voteOptions={rooms[currentAccount].voteOptions} />
-                                    }
+                                    <label className="text-white text-sm mb-2 block font-semibold"> Send address contract for voter: {addressContract}</label>
+                                    {!showResults &&
+                                        
+                                        (
+                                            <button
+                                                type="button"
+                                                onClick={handleCheckVote}
+                                                className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
+                                                >
+                                                🗳️ Kiểm phiếu
+                                            </button>
+                                        )}
+                                        {showResults &&
+                                        <VoteResults autoFetch={false} roomId={addressAdmin} addressVotingContract={addressContract} voteOptions={rooms[currentAccount].voteOptions} />
+                                        }
                                 </>
                             )}
                             {step === "main" && (
@@ -394,7 +395,7 @@ const Welcome = () => {
                                         <ul className="flex flex-col space-y-2 text-white">
                                             {Array.from({ length: Number(voteOptions) }, (_, index) => (
 
-                                                <div className="flex items-center">
+                                                <div key={index} className="flex items-center">
                                                     <input className="w-4 h-4 text-pink-500 bg-gray-700 border-gray-600 focus:ring-pink-500"
                                                     type="radio" id={`vote${index+1}`} name="vote" value={index+1} onChange={(e)=>handleChangeVote(e,"vote")}/>
                                                     <label htmlFor={`vote${index+1}`} className="ml-2 text-sm cursor-pointer">Lựa chọn {index+1}</label>

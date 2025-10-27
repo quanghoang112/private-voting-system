@@ -56,10 +56,9 @@ export const deployZKVotingContract = async (votingOptionsCount: number)  =>
     // 1. Tạo Contract Factory
     const ZKVotingFactory = new ethers.ContractFactory(votingABI, votingBytecode, signer);
 
-    // 2. GỌI TRIỂN KHAI (deploy) VÀ TRUYỀN ĐỐI SỐ CHO CONSTRUCTOR
+    // 2. Deploy
     const contract = await ZKVotingFactory.deploy(
-        votingOptionsCount    // Đối số 1: _votingOptionsCount
-        // Ethers sẽ tự động mã hóa các đối số này và gọi constructor
+        votingOptionsCount 
     );
 
     // Chờ giao dịch được xác nhận
@@ -103,7 +102,7 @@ export const TransactionProvider = ({children}: TransactionProviderProps) =>
                 ...prevState, // Giữ lại tất cả các phòng khác
                 [currentAccount]: {
                     ...currentRoom, // Giữ lại các thuộc tính khác của Room hiện tại
-                    [name]: newValue, // Cập nhật thuộc tính có tên là 'name' (ví dụ: 'code' hoặc 'name')
+                    [name]: newValue, // Cập nhật thuộc tính có tên là 'name'
                     ["admin"]: currentAccount,
                 }
             };
@@ -246,23 +245,29 @@ export const TransactionProvider = ({children}: TransactionProviderProps) =>
             const VotingContract = await getEthereumContract(_addressContract,votingABI,currentAccount);
             
             console.log("wait VotingContract!");
-            // LƯU Ý: Thay thế các placeholder "" bằng giá trị thực sự từ publicSignals
-            // Cần đảm bảo thứ tự Public Signals khớp với định nghĩa trong Contract ABI
-            // (Trong ABI của bạn có 3 Public Signals: _publicKey, _nullifier, _vote)
-            const tx = await VotingContract.castVote(
-                pA,
-                pB,
-                pC,
-                publicSignals.map(x => ethers.toBeHex(x,32)),
-                inputs.vote
-            );
-            
-            console.log("✅ TX sent:", tx.hash);
-            
-            // Chờ transaction hoàn tất (nên thêm bước này để xác nhận)
-            await tx.wait(); 
-            
-            console.log("⭐ Bỏ phiếu thành công và đã được xác nhận trên chuỗi!");
+            if(Number(publicSignals[0]) == 1 && Number(publicSignals[1]) == 1)
+            {
+                const tx = await VotingContract.castVote(
+                    pA,
+                    pB,
+                    pC,
+                    publicSignals.map(x => ethers.toBeHex(x,32)),
+                    inputs.vote
+                );
+
+                console.log("TX: ",tx);
+                
+                console.log("✅ TX sent:", tx.hash);
+                
+                // Chờ transaction hoàn tất (nên thêm bước này để xác nhận)
+                await tx.wait(); 
+                
+                console.log("⭐ Bỏ phiếu thành công và đã được xác nhận trên chuỗi!");
+            }
+            else
+            {
+                alert("Invalid vote!");
+            }
 
 
         }
@@ -334,35 +339,29 @@ export const TransactionProvider = ({children}: TransactionProviderProps) =>
 
             console.log(await receipt.logs);
             for (const log of receipt.logs) {
-                // roomsContract.interface chứa thông tin về tất cả các Events trong ABI của bạn
-                // Phương thức parseLog sẽ giải mã log thô thành đối tượng dễ đọc (ParsedLog)
+                
                 const parsedLog = roomsContract.interface.parseLog(log); 
 
-                // console.log("Parsed Log:", parsedLog); // Dòng này giúp bạn debug chi tiết
 
                 // **********************************************
                 // BẮT ĐẦU TRUY CẬP THÔNG TIN TỪ parsedLog
                 // **********************************************
                 
                 if (parsedLog && parsedLog.name === 'RoomCreated') {
-                    // 1. Lấy tên Event (ví dụ: 'AllAdminsReturned')
                     console.log("Tên Event:", parsedLog.name); 
 
-                    // 2. Lấy các đối số (Arguments)
-                    // Đây là một đối tượng Args/Result (giống như mảng).
-                    // Đối số đầu tiên trong Event 'AllAdminsReturned(uint256)' là index 0.
+                    
                     const myValue = parsedLog.args[0]; 
                     
-                    // 3. Giải mã và chuyển đổi sang số JavaScript
-                    // returnedValue = Number(myValue); 
+                
                     
-                    console.log(`Giá trị đã giải mã: ${parsedLog.args[0]}, ${parsedLog.args[1]}, ${parsedLog.args[2]}`); // Kết quả: 5
+                    console.log(`Giá trị đã giải mã: ${parsedLog.args[0]}, ${parsedLog.args[1]}, ${parsedLog.args[2]}`);
                     break; 
                 }
             }
             
             
-            // Chờ transaction hoàn tất (nên thêm bước này để xác nhận)
+            // Chờ transaction hoàn tất
             if (await tx.wait())
             {
                 console.log("Tạo phòng thành công!");

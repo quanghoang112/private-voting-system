@@ -20,8 +20,8 @@ const App = () =>
             <div className="gradient-bg-services">
             <Services />
             </div>
-            <Transactions />
-            <Footer />
+            {/* <Transactions /> */}
+            {/* <Footer /> */}
           </div>
         </div>
       )
